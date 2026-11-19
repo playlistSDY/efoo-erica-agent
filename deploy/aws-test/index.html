@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ko">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>EFOO · AWS 환경 확인</title>
+<style>
+:root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo",sans-serif;color:#243d34;background:#f8f8f4}*{box-sizing:border-box}body{max-width:880px;margin:0 auto;padding:54px 24px}header{display:flex;gap:14px;align-items:center}.logo{background:#23483d;color:white;border-radius:50%;font-size:23px;font-weight:750;padding:15px 19px}.eyebrow{font-size:13px;letter-spacing:.1em;color:#62736a}h1{margin:5px 0;font-size:27px}p{line-height:1.7;color:#617066}.panel{background:white;border:1px solid #dbe3da;border-radius:20px;padding:26px;margin:25px 0}.status{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.badge{background:#edf2e9;color:#486243;border-radius:20px;padding:7px 12px;font-size:13px}.ok{background:#dcf2df}.fail{background:#ffe9dd;color:#88451e}button{margin-left:auto;border:0;border-radius:12px;background:#244b3e;color:white;padding:12px 17px;cursor:pointer;font:inherit}button:disabled{opacity:.6}dl{display:grid;grid-template-columns:120px 1fr;gap:13px 16px;margin:27px 0 0}dt{color:#6e7c72}dd{margin:0;overflow-wrap:anywhere}.note{background:#f6f4ec;padding:15px;border-radius:12px;font-size:14px}li{margin:12px 0;line-height:1.6}a{color:#225f48}pre{overflow:auto;background:#f6f7f4;padding:18px;border-radius:12px;font-size:12px;line-height:1.6}footer{font-size:13px;color:#829084}h2{font-size:19px}@media(max-width:500px){body{padding:30px 17px}.panel{padding:19px}h1{font-size:22px}dl{grid-template-columns:86px 1fr;font-size:14px}button{margin-left:0}}
+</style>
+<header><div class="logo">E</div><div><div class="eyebrow">EFOO · WEEK 02</div><h1>AWS 실행 환경 확인</h1></div></header>
+<p>한양 ERICA 학교생활 안내 에이전트의 기본 실행 환경이에요.<br>지금 실행 중인 API가 비공개 S3의 출처 목록을 실제로 읽을 수 있는지 확인합니다.</p>
+<section class="panel">
+ <div class="status"><strong id="status" role="status" aria-live="polite">연결 확인 중…</strong><span class="badge">RAG 미연결</span><button id="refresh">다시 확인</button></div>
+ <dl id="facts"></dl>
+ <p class="note">2주차 환경 검증용 앱입니다. 출처 메타데이터를 읽으며, 문서 본문·임베딩·벡터 검색·AI 답변은 아직 연결하지 않았어요. OpenAI API 키와 대화 내용은 사용하거나 표시하지 않습니다.</p>
+</section>
+<section class="panel"><h2>S3에서 읽은 공식 출처</h2><ul id="sources"><li>확인하고 있어요.</li></ul></section>
+<details class="panel"><summary>실제 API 응답 보기</summary><pre id="raw"></pre></details>
+<footer>프로세스 상태: <a href="/healthz">/healthz</a> · 저장소 연결: <a href="/api/environment">/api/environment</a></footer>
+<script>
+const statusNode=document.querySelector('#status'), facts=document.querySelector('#facts'), sourceList=document.querySelector('#sources'), raw=document.querySelector('#raw'), refresh=document.querySelector('#refresh');
+function fact(label,value){const dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=label;dd.textContent=String(value??'—');facts.append(dt,dd)}
+async function check(){refresh.disabled=true;statusNode.textContent='연결 확인 중…';statusNode.className='';facts.replaceChildren();sourceList.replaceChildren();try{const response=await fetch('/api/environment',{cache:'no-store'}),data=await response.json();raw.textContent=JSON.stringify(data,null,2);const ok=response.ok&&data.status==='ok'&&data.storage?.read_ok===true;statusNode.textContent=ok?'S3 연결 확인 완료':'S3 연결 확인 필요';statusNode.className=ok?'badge ok':'badge fail';fact('HTTP 상태',response.status);fact('프로젝트',data.project);fact('리전',data.region);fact('버전',data.version);fact('S3 버킷',data.storage?.bucket);fact('S3 객체',data.storage?.key);fact('출처 수',data.source_count??0);fact('확인 시간',data.checked_at?new Date(data.checked_at).toLocaleString('ko-KR'):'—');if(!ok)fact('확인 사항',data.error??'응답 형식을 확인해주세요.');for(const source of data.sources??[]){const url=new URL(source.source_url);if(url.protocol!=='https:'||url.hostname!=='life.hanyang.ac.kr')continue;const li=document.createElement('li'),a=document.createElement('a');a.textContent=source.title;a.href=url.href;a.target='_blank';a.rel='noopener noreferrer';li.append(a,document.createTextNode(' · '+source.category));sourceList.append(li)}if(!sourceList.children.length){const li=document.createElement('li');li.textContent='S3 읽기에 성공한 공식 출처가 아직 없어요.';sourceList.append(li)}}catch(error){statusNode.textContent='API 연결을 확인해주세요';statusNode.className='badge fail';raw.textContent=String(error);const li=document.createElement('li');li.textContent='현재 출처를 불러오지 못했어요.';sourceList.append(li)}finally{refresh.disabled=false}}
+refresh.addEventListener('click',check);check();
+</script>
+</html>

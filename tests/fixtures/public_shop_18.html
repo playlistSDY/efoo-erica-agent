@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <script src="/theme/assets/js/base.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- CSS 전역 스타일 (로드 순서: reset → tokens → typography → layout) -->
+  <link rel="stylesheet" href="/theme/assets/css/reset.css">
+  <link rel="stylesheet" href="/theme/assets/css/tokens.css">
+  <link rel="stylesheet" href="/theme/assets/css/typography.css">
+  <link rel="stylesheet" href="/theme/assets/css/layout.css">
+  
+  <!-- 컴포넌트 스타일 -->
+  <link rel="stylesheet" href="/theme/assets/css/components/button.css">
+  <link rel="stylesheet" href="/theme/assets/css/components/card.css">
+  <link rel="stylesheet" href="/theme/assets/css/components/badge.css">
+  <link rel="stylesheet" href="/theme/assets/css/components/form.css">
+  <link rel="stylesheet" href="/theme/assets/css/components/nav.css">
+  <link rel="stylesheet" href="/theme/assets/css/components/lang-switcher.css">
+
+
+  <!-- hreflang 태그 (SEO) -->
+  <link rel="alternate" hreflang="ko" href="/theme/pages/facilities/shop-detail.php?id=18">
+  <link rel="alternate" hreflang="en" href="/theme/en/pages/facilities/shop-detail.php?id=18">
+  <link rel="alternate" hreflang="zh" href="/theme/zh/pages/facilities/shop-detail.php?id=18">
+
+  <!-- MOCK 데이터 -->
+  <script src="/theme/assets/js/mock-data.js?v=1794567387"></script>
+  <link rel="stylesheet" href="/theme/assets/css/pages/facilities/shop-detail.css">
+</head>
+
+<body>
+  <!-- ═══════════════════════════════════════════════════════════
+     1단: 유틸리티 바 (스크롤 시 숨김)
+     ═══════════════════════════════════════════════════════════ -->
+<div class="hy-utility-bar" id="utility-bar">
+  <div class="hy-utility-bar__inner">
+    <span class="hy-utility-bar__title">HY-SQUARE · 한양대학교 ERICA 복지포털</span>
+    <div class="hy-utility-bar__actions">
+      <!-- 언어 전환 (KOR / ENG / CHN 인라인 3버튼) -->
+      <div class="hy-lang-switcher" id="lang-switcher">
+      <a href="/theme/pages/facilities/shop-detail.php?id=18"
+       class="hy-lang-btn is-active"
+       lang="ko">KOR</a>
+      <a href="/theme/en/pages/facilities/shop-detail.php?id=18"
+       class="hy-lang-btn "
+       lang="en">ENG</a>
+      <a href="/theme/zh/pages/facilities/shop-detail.php?id=18"
+       class="hy-lang-btn "
+       lang="zh">CHN</a>
+  </div>
+
+      <span class="hy-utility-bar__divider"></span>
+
+              <a href="/theme/pages/auth/login.php" class="hy-utility-bar__user-btn" id="btn-utility-login">
+          로그인        </a>
+      
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     2단: 메인 네비게이션 (로고 + GNB, sticky 고정)
+     ═══════════════════════════════════════════════════════════ -->
+<nav class="hy-main-nav" id="main-nav" role="navigation" aria-label="메인">
+  <div class="hy-main-nav__inner">
+    <a href="/theme/pages/home.php" class="hy-main-nav__logo" aria-label="장학복지회 홈으로 이동">
+      <img src="/theme/assets/img/logo-full-standard.svg" alt="HY-SQUARE">
+    </a>
+
+    <!-- PC GNB 메뉴 -->
+    <div class="hy-main-nav__menu" id="main-nav-menu">
+      <a href="/theme/pages/home.php"
+        class="hy-main-nav__item "
+        data-page="home">
+        메인      </a>
+      <a href="/theme/pages/facilities/index.php"
+        class="hy-main-nav__item is-active"
+        data-page="facilities">
+        시설안내      </a>
+      <a href="/theme/pages/payment/ticket-shops.php"
+        class="hy-main-nav__item " data-page="ticket">
+        식권구매      </a>
+      <a href="/theme/pages/notice/index.php"
+        class="hy-main-nav__item " data-page="notice">
+        공지사항      </a>
+            <a href="/theme/pages/mypage/index.php"
+        class="hy-main-nav__item " data-page="mypage">
+        마이페이지      </a>
+    </div>
+
+    <!-- 모바일 햄버거 버튼 -->
+    <button class="hy-main-nav__hamburger" id="btn-hamburger" aria-label="메뉴 열기" aria-expanded="false">
+      <span class="material-symbols-sharp">menu</span>
+    </button>
+  </div>
+</nav>
+
+<!-- 스크롤 동작: 유틸리티 바 숨김/표시 -->
+<script>
+  (function () {
+    var utilityBar = document.getElementById('utility-bar');
+    if (!utilityBar) return;
+
+    var lastScrollY = 0;
+    var ticking = false;
+
+    function onScroll() {
+      var currentScrollY = window.scrollY;
+      if (currentScrollY > 60) {
+        utilityBar.classList.add('is-hidden');
+      } else {
+        utilityBar.classList.remove('is-hidden');
+      }
+      lastScrollY = currentScrollY;
+      ticking = false;
+    }
+
+    window.addEventListener('scroll', function () {
+      if (!ticking) {
+        window.requestAnimationFrame(onScroll);
+        ticking = true;
+      }
+    }, { passive: true });
+  })();
+
+  </script>    <!-- 모바일 하단 GNB 탭바 (PC에서는 CSS로 숨김) -->
+  <nav class="hy-gnb" id="site-gnb" role="navigation" aria-label="메인">
+    <div class="hy-gnb__inner">
+      <a href="/theme/pages/home.php" class="hy-gnb__item " data-page="home">
+        <span class="material-symbols-sharp" aria-hidden="true">home</span>
+        <span class="hy-gnb__label">메인</span>
+      </a>
+      <a href="/theme/pages/facilities/index.php" class="hy-gnb__item is-active" data-page="facilities">
+        <span class="material-symbols-sharp" aria-hidden="true">business</span>
+        <span class="hy-gnb__label">시설안내</span>
+      </a>
+      <a href="/theme/pages/payment/ticket-shops.php" class="hy-gnb__item " data-page="ticket">
+        <span class="material-symbols-sharp" aria-hidden="true">local_dining</span>
+        <span class="hy-gnb__label">식권구매</span>
+      </a>
+      <a href="/theme/pages/notice/index.php" class="hy-gnb__item " data-page="notice">
+        <span class="material-symbols-sharp" aria-hidden="true">campaign</span>
+        <span class="hy-gnb__label">공지사항</span>
+      </a>
+            <a href="/theme/pages/mypage/index.php" class="hy-gnb__item " data-page="mypage">
+        <span class="material-symbols-sharp" aria-hidden="true">person</span>
+        <span class="hy-gnb__label">마이페이지</span>
+      </a>
+    </div>
+  </nav>
+
+  <div class="hy-page-wrapper">
+    <main class="hy-main">
+      <div class="shop-cover hy-relative">
+                  <img src="/uploads/facilities/fac_6a8da1de5ebb2.jpg" alt="NEW YORK BURGER" class="shop-cover__img">
+              </div>
+
+      <section class="hy-section">
+        <div class="shop-header">
+          <div class="shop-category">일반음식점</div>
+          <div class="shop-name">NEW YORK BURGER</div>
+        </div>
+
+        <table class="info-table">
+          <tbody>
+            <tr>
+              <td class="info-label">위치</td>
+              <td>학생복지관 2층</td>
+            </tr>
+                          <tr>
+                <td class="info-label">건물 번호</td>
+                <td>102</td>
+              </tr>
+                                      <tr>
+                <td class="info-label">연락처</td>
+                <td>031-400-4561</td>
+              </tr>
+                        <tr>
+              <td class="info-label">영업시간</td>
+              <td>학기중<br />
+ · 10:00 ~ 19:30<br />
+방학기간<br />
+ · 10:30 ~ 18:30 </td>
+            </tr>
+          </tbody>
+        </table>
+
+                  <div class="shop-notice-box">
+            <div class="shop-notice-box__label">📢 운영 공지</div>
+            <div class="shop-notice-box__text">에리카 학생들의 든든하고 건강한 한끼를 위해 노력 하겠습니다.</div>
+          </div>
+              </section>
+
+      
+      <div class="hy-flex hy-justify-center hy-mt-4 hy-mb-6">
+        <button class="hy-btn hy-text-white shop-back-btn" onclick="location.href='/theme/pages/facilities/index.php'">
+          <span class="material-symbols-sharp shop-back-btn__icon">arrow_back</span> 목록으로 돌아가기        </button>
+      </div>
+
+    </main>
+    <!-- 사이드바 영역 -->
+<style>
+  /* PC 모드: .hy-sidebar__utility 숨김 */
+  @media (min-width: 1025px) {
+    .hy-sidebar__utility {
+      display: none !important;
+    }
+  }
+</style>
+<div class="hy-sidebar-overlay" id="site-sidebar-overlay"></div>
+<aside class="hy-sidebar" id="site-sidebar">
+  <!-- 모바일 유틸리티 영역 (햄버거 메뉴 상단) -->
+  <div class="hy-sidebar__utility">
+    <div class="hy-flex hy-justify-between hy-items-center hy-mb-3">
+      <div class="hy-lang-switcher" id="lang-switcher">
+      <a href="/theme/pages/facilities/shop-detail.php?id=18"
+       class="hy-lang-btn is-active"
+       lang="ko">KOR</a>
+      <a href="/theme/en/pages/facilities/shop-detail.php?id=18"
+       class="hy-lang-btn "
+       lang="en">ENG</a>
+      <a href="/theme/zh/pages/facilities/shop-detail.php?id=18"
+       class="hy-lang-btn "
+       lang="zh">CHN</a>
+  </div>
+      <button class="hy-sidebar__close" id="btn-sidebar-close" aria-label="닫기">
+        <span class="material-symbols-sharp">close</span>
+      </button>
+    </div>
+  </div>
+
+      <!-- 로그아웃 상태 -->
+    <div class="hy-section hy-p-5 hy-text-center">
+      <div class="text-h4 hy-mb-2">
+        <span class="material-symbols-sharp"
+          style="font-size: 20px; vertical-align: text-bottom; color: var(--hy-color-neutral-400);">lock</span>
+        로그인이 필요합니다      </div>
+      <div class="text-p hy-text-secondary hy-mb-4">
+        장학복지회 서비스를 이용하시려면 로그인을 해주세요.      </div>
+      <a href="/theme/pages/auth/login.php" class="hy-btn hy-btn--primary hy-w-full"
+        style="letter-spacing: 0.08em;">
+        <span class="material-symbols-sharp">login</span> LOG-IN
+      </a>
+    </div>
+  </aside>
+<script>
+  // PHP로 렌더링된 사이드바가 있으면 JS Mock 렌더링을 우회하기 위한 플래그
+  window.__SIDEBAR_RENDERED_BY_PHP__ = true;
+
+  // 햄버거 메뉴 ↔ 사이드바 토글
+  (function () {
+    var hamburger = document.getElementById('btn-hamburger');
+    var sidebar = document.getElementById('site-sidebar');
+    var overlay = document.getElementById('site-sidebar-overlay');
+    var closeBtn = document.getElementById('btn-sidebar-close');
+
+    function openSidebar() {
+      if (sidebar) sidebar.classList.add('is-open');
+      if (overlay) overlay.classList.add('is-active');
+      if (hamburger) hamburger.setAttribute('aria-expanded', 'true');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeSidebar() {
+      if (sidebar) sidebar.classList.remove('is-open');
+      if (overlay) overlay.classList.remove('is-active');
+      if (hamburger) hamburger.setAttribute('aria-expanded', 'false');
+      document.body.style.overflow = '';
+    }
+
+    // PC 모드(≥1025px) 전환 시 모바일 오프캔버스 오버레이 잠금 해제 및 본문 정상 스크롤 보장
+    function syncViewportScrollState() {
+      if (window.innerWidth > 1024) {
+        if (sidebar && sidebar.classList.contains('is-open')) {
+          sidebar.classList.remove('is-open');
+        }
+        if (overlay && overlay.classList.contains('is-active')) {
+          overlay.classList.remove('is-active');
+        }
+        if (hamburger) {
+          hamburger.setAttribute('aria-expanded', 'false');
+        }
+        document.body.style.overflow = '';
+      } else if (!sidebar || !sidebar.classList.contains('is-open')) {
+        document.body.style.overflow = '';
+      }
+    }
+    syncViewportScrollState();
+    window.addEventListener('resize', syncViewportScrollState);
+
+    if (hamburger) hamburger.addEventListener('click', openSidebar);
+    if (overlay) overlay.addEventListener('click', closeSidebar);
+    if (closeBtn) closeBtn.addEventListener('click', closeSidebar);
+  })();
+</script>
+  </div>
+
+  <footer class="hy-footer" id="site-footer">
+  <div class="hy-footer__inner">
+    <!-- <div class="hy-footer__logo">한양대학교 ERICA 장학복지회</div>
+    <div class="hy-footer__info">
+      한양대학교 ERICA 캠퍼스 장학복지회<br>
+      경기도 안산시 상록구 한양대학로 55<br>
+      TEL. 031-000-0000 &nbsp;|&nbsp; E-mail. welfare@hanyang.ac.kr    </div> -->
+    <div class="hy-footer__copy">
+      © 2026 Hanyang University All rights reserved.    </div>
+  </div>
+</footer>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      HY_MOCK.renderSidebar();
+    });
+  </script>
+</body>
+
+</html>

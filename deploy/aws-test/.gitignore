@@ -1,0 +1,6 @@
+__pycache__/
+.qa-venv/
+*.pyc
+local-verification.json
+evidence/
+deploy.log

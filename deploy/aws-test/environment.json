@@ -1,0 +1,1239 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "EFOO Week2 HTTP environment probe on dedicated VPC ALB Fargate; no RAG or model deployment.",
+  "Parameters": {
+    "ProjectName": {
+      "Type": "String",
+      "Default": "efoo-week2",
+      "MinLength": 3,
+      "MaxLength": 24,
+      "AllowedPattern": "[a-z][a-z0-9-]*"
+    },
+    "ImageUri": {
+      "Type": "String",
+      "AllowedPattern": "[0-9]{12}\\.dkr\\.ecr\\.[a-z0-9-]+\\.amazonaws\\.com(?:\\.cn)?/[a-z0-9/_-]+:[a-zA-Z0-9._-]+",
+      "Description": "Existing image in the bootstrap ECR repository; build for linux/amd64."
+    },
+    "RepositoryName": {
+      "Type": "String",
+      "Default": "efoo-week2",
+      "AllowedPattern": "[a-z0-9][a-z0-9/_-]+"
+    },
+    "DocumentBucketName": {
+      "Type": "String",
+      "AllowedPattern": "[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]"
+    },
+    "AppVersion": {
+      "Type": "String",
+      "MinLength": 1,
+      "MaxLength": 128,
+      "Description": "Git commit or SHA256 build fingerprint, displayed by the probe."
+    },
+    "TaskPlacement": {
+      "Type": "String",
+      "Default": "Public",
+      "AllowedValues": [
+        "Public",
+        "Private"
+      ],
+      "Description": "Public: no NAT, task public IP, inbound only from ALB SG. Private: private tasks via one NAT (lab, not multi-AZ NAT HA)."
+    },
+    "ExistingExecutionRoleArn": {
+      "Type": "String",
+      "Default": "",
+      "AllowedPattern": "(^$|arn:aws:iam::[0-9]{12}:role/.+)",
+      "Description": "Optional lab-provided execution role; must pull this ECR image and write this log group."
+    },
+    "ExistingTaskRoleArn": {
+      "Type": "String",
+      "Default": "",
+      "AllowedPattern": "(^$|arn:aws:iam::[0-9]{12}:role/.+)",
+      "Description": "Optional lab-provided task role; must GetObject only the bootstrap bucket samples prefix."
+    }
+  },
+  "Conditions": {
+    "PrivateTasks": {
+      "Fn::Equals": [
+        {
+          "Ref": "TaskPlacement"
+        },
+        "Private"
+      ]
+    },
+    "CreateExecutionRole": {
+      "Fn::Equals": [
+        {
+          "Ref": "ExistingExecutionRoleArn"
+        },
+        ""
+      ]
+    },
+    "CreateTaskRole": {
+      "Fn::Equals": [
+        {
+          "Ref": "ExistingTaskRoleArn"
+        },
+        ""
+      ]
+    }
+  },
+  "Resources": {
+    "Vpc": {
+      "Type": "AWS::EC2::VPC",
+      "Properties": {
+        "CidrBlock": "10.42.0.0/16",
+        "EnableDnsSupport": true,
+        "EnableDnsHostnames": true,
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "EFOO"
+          },
+          {
+            "Key": "Stage",
+            "Value": "Week2"
+          },
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${ProjectName}-vpc"
+            }
+          }
+        ]
+      }
+    },
+    "InternetGateway": {
+      "Type": "AWS::EC2::InternetGateway",
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "EFOO"
+          },
+          {
+            "Key": "Stage",
+            "Value": "Week2"
+          },
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${ProjectName}-igw"
+            }
+          }
+        ]
+      }
+    },
+    "GatewayAttachment": {
+      "Type": "AWS::EC2::VPCGatewayAttachment",
+      "Properties": {
+        "VpcId": {
+          "Ref": "Vpc"
+        },
+        "InternetGatewayId": {
+          "Ref": "InternetGateway"
+        }
+      }
+    },
+    "PublicRouteTable": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {
+          "Ref": "Vpc"
+        },
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "EFOO"
+          },
+          {
+            "Key": "Stage",
+            "Value": "Week2"
+          },
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${ProjectName}-public-routes"
+            }
+          }
+        ]
+      }
+    },
+    "PublicDefaultRoute": {
+      "Type": "AWS::EC2::Route",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "PublicRouteTable"
+        },
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": {
+          "Ref": "InternetGateway"
+        }
+      },
+      "DependsOn": "GatewayAttachment"
+    },
+    "AlbSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Public HTTP test endpoint; TLS termination is future work",
+        "VpcId": {
+          "Ref": "Vpc"
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 80,
+            "ToPort": 80,
+            "CidrIp": "0.0.0.0/0"
+          }
+        ],
+        "SecurityGroupEgress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 8000,
+            "ToPort": 8000,
+            "CidrIp": "10.42.0.0/16"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "EFOO"
+          },
+          {
+            "Key": "Stage",
+            "Value": "Week2"
+          },
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${ProjectName}-alb-sg"
+            }
+          }
+        ]
+      }
+    },
+    "TaskSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Application ingress from ALB only; HTTPS egress for ECR S3 and logs",
+        "VpcId": {
+          "Ref": "Vpc"
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 8000,
+            "ToPort": 8000,
+            "SourceSecurityGroupId": {
+              "Ref": "AlbSecurityGroup"
+            }
+          }
+        ],
+        "SecurityGroupEgress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 443,
+            "ToPort": 443,
+            "CidrIp": "0.0.0.0/0"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "EFOO"
+          },
+          {
+            "Key": "Stage",
+            "Value": "Week2"
+          },
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${ProjectName}-task-sg"
+            }
+          }
+        ]
+      }
+    },
+    "NatAddress": {
+      "Type": "AWS::EC2::EIP",
+      "Properties": {
+        "Domain": "vpc",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "EFOO"
+          },
+          {
+            "Key": "Stage",
+            "Value": "Week2"
+          },
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${ProjectName}-nat-ip"
+            }
+          }
+        ]
+      },
+      "Condition": "PrivateTasks"
+    },
+    "NatGateway": {
+      "Type": "AWS::EC2::NatGateway",
+      "Properties": {
+        "AllocationId": {
+          "Fn::GetAtt": [
+            "NatAddress",
+            "AllocationId"
+          ]
+        },
+        "SubnetId": {
+          "Ref": "PublicSubnetA"
+        },
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "EFOO"
+          },
+          {
+            "Key": "Stage",
+            "Value": "Week2"
+          },
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${ProjectName}-nat"
+            }
+          }
+        ]
+      },
+      "Condition": "PrivateTasks",
+      "DependsOn": "GatewayAttachment"
+    },
+    "Alb": {
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Properties": {
+        "Scheme": "internet-facing",
+        "Type": "application",
+        "IpAddressType": "ipv4",
+        "SecurityGroups": [
+          {
+            "Ref": "AlbSecurityGroup"
+          }
+        ],
+        "Subnets": [
+          {
+            "Ref": "PublicSubnetA"
+          },
+          {
+            "Ref": "PublicSubnetB"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "EFOO"
+          },
+          {
+            "Key": "Stage",
+            "Value": "Week2"
+          },
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${ProjectName}-alb"
+            }
+          }
+        ]
+      }
+    },
+    "TargetGroup": {
+      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+      "Properties": {
+        "VpcId": {
+          "Ref": "Vpc"
+        },
+        "Port": 8000,
+        "Protocol": "HTTP",
+        "TargetType": "ip",
+        "HealthCheckPath": "/healthz",
+        "HealthCheckProtocol": "HTTP",
+        "HealthCheckIntervalSeconds": 15,
+        "HealthCheckTimeoutSeconds": 5,
+        "HealthyThresholdCount": 2,
+        "UnhealthyThresholdCount": 2,
+        "Matcher": {
+          "HttpCode": "200"
+        },
+        "TargetGroupAttributes": [
+          {
+            "Key": "deregistration_delay.timeout_seconds",
+            "Value": "15"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "EFOO"
+          },
+          {
+            "Key": "Stage",
+            "Value": "Week2"
+          },
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${ProjectName}-targets"
+            }
+          }
+        ]
+      }
+    },
+    "Listener": {
+      "Type": "AWS::ElasticLoadBalancingV2::Listener",
+      "Properties": {
+        "LoadBalancerArn": {
+          "Ref": "Alb"
+        },
+        "Port": 80,
+        "Protocol": "HTTP",
+        "DefaultActions": [
+          {
+            "Type": "forward",
+            "TargetGroupArn": {
+              "Ref": "TargetGroup"
+            }
+          }
+        ]
+      }
+    },
+    "Cluster": {
+      "Type": "AWS::ECS::Cluster",
+      "Properties": {
+        "ClusterName": {
+          "Ref": "ProjectName"
+        },
+        "ClusterSettings": [
+          {
+            "Name": "containerInsights",
+            "Value": "disabled"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "EFOO"
+          },
+          {
+            "Key": "Stage",
+            "Value": "Week2"
+          },
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${ProjectName}-cluster"
+            }
+          }
+        ]
+      }
+    },
+    "LogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": {
+          "Fn::Sub": "/ecs/${ProjectName}"
+        },
+        "RetentionInDays": 14,
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "EFOO"
+          },
+          {
+            "Key": "Stage",
+            "Value": "Week2"
+          },
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${ProjectName}-logs"
+            }
+          }
+        ]
+      }
+    },
+    "PublicSubnetA": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "Vpc"
+        },
+        "CidrBlock": "10.42.0.0/24",
+        "AvailabilityZone": {
+          "Fn::Select": [
+            0,
+            {
+              "Fn::GetAZs": ""
+            }
+          ]
+        },
+        "MapPublicIpOnLaunch": false,
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "EFOO"
+          },
+          {
+            "Key": "Stage",
+            "Value": "Week2"
+          },
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${ProjectName}-public-a"
+            }
+          }
+        ]
+      }
+    },
+    "PublicSubnetARoutes": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": {
+          "Ref": "PublicSubnetA"
+        },
+        "RouteTableId": {
+          "Ref": "PublicRouteTable"
+        }
+      }
+    },
+    "PrivateSubnetA": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "Vpc"
+        },
+        "CidrBlock": "10.42.10.0/24",
+        "AvailabilityZone": {
+          "Fn::Select": [
+            0,
+            {
+              "Fn::GetAZs": ""
+            }
+          ]
+        },
+        "MapPublicIpOnLaunch": false,
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "EFOO"
+          },
+          {
+            "Key": "Stage",
+            "Value": "Week2"
+          },
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${ProjectName}-private-a"
+            }
+          }
+        ]
+      },
+      "Condition": "PrivateTasks"
+    },
+    "PrivateSubnetARoutes": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": {
+          "Ref": "PrivateSubnetA"
+        },
+        "RouteTableId": {
+          "Ref": "PrivateRouteTableA"
+        }
+      },
+      "Condition": "PrivateTasks"
+    },
+    "PrivateRouteTableA": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {
+          "Ref": "Vpc"
+        },
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "EFOO"
+          },
+          {
+            "Key": "Stage",
+            "Value": "Week2"
+          },
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${ProjectName}-private-routes-a"
+            }
+          }
+        ]
+      },
+      "Condition": "PrivateTasks"
+    },
+    "PrivateDefaultRouteA": {
+      "Type": "AWS::EC2::Route",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "PrivateRouteTableA"
+        },
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "NatGatewayId": {
+          "Ref": "NatGateway"
+        }
+      },
+      "Condition": "PrivateTasks"
+    },
+    "PublicSubnetB": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "Vpc"
+        },
+        "CidrBlock": "10.42.1.0/24",
+        "AvailabilityZone": {
+          "Fn::Select": [
+            1,
+            {
+              "Fn::GetAZs": ""
+            }
+          ]
+        },
+        "MapPublicIpOnLaunch": false,
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "EFOO"
+          },
+          {
+            "Key": "Stage",
+            "Value": "Week2"
+          },
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${ProjectName}-public-b"
+            }
+          }
+        ]
+      }
+    },
+    "PublicSubnetBRoutes": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": {
+          "Ref": "PublicSubnetB"
+        },
+        "RouteTableId": {
+          "Ref": "PublicRouteTable"
+        }
+      }
+    },
+    "PrivateSubnetB": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "Vpc"
+        },
+        "CidrBlock": "10.42.11.0/24",
+        "AvailabilityZone": {
+          "Fn::Select": [
+            1,
+            {
+              "Fn::GetAZs": ""
+            }
+          ]
+        },
+        "MapPublicIpOnLaunch": false,
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "EFOO"
+          },
+          {
+            "Key": "Stage",
+            "Value": "Week2"
+          },
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${ProjectName}-private-b"
+            }
+          }
+        ]
+      },
+      "Condition": "PrivateTasks"
+    },
+    "PrivateSubnetBRoutes": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": {
+          "Ref": "PrivateSubnetB"
+        },
+        "RouteTableId": {
+          "Ref": "PrivateRouteTableB"
+        }
+      },
+      "Condition": "PrivateTasks"
+    },
+    "PrivateRouteTableB": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {
+          "Ref": "Vpc"
+        },
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "EFOO"
+          },
+          {
+            "Key": "Stage",
+            "Value": "Week2"
+          },
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${ProjectName}-private-routes-b"
+            }
+          }
+        ]
+      },
+      "Condition": "PrivateTasks"
+    },
+    "PrivateDefaultRouteB": {
+      "Type": "AWS::EC2::Route",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "PrivateRouteTableB"
+        },
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "NatGatewayId": {
+          "Ref": "NatGateway"
+        }
+      },
+      "Condition": "PrivateTasks"
+    },
+    "ExecutionRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ecs-tasks.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole",
+              "Condition": {
+                "StringEquals": {
+                  "aws:SourceAccount": {
+                    "Ref": "AWS::AccountId"
+                  }
+                },
+                "ArnLike": {
+                  "aws:SourceArn": {
+                    "Fn::Sub": "arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:*"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "PullImageAndWriteLogs",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ecr:GetAuthorizationToken"
+                  ],
+                  "Resource": "*"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ecr:BatchCheckLayerAvailability",
+                    "ecr:GetDownloadUrlForLayer",
+                    "ecr:BatchGetImage"
+                  ],
+                  "Resource": {
+                    "Fn::Sub": "arn:${AWS::Partition}:ecr:${AWS::Region}:${AWS::AccountId}:repository/${RepositoryName}"
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "LogGroup",
+                      "Arn"
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "EFOO"
+          },
+          {
+            "Key": "Stage",
+            "Value": "Week2"
+          },
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${ProjectName}-execution-role"
+            }
+          }
+        ]
+      },
+      "Condition": "CreateExecutionRole"
+    },
+    "TaskRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ecs-tasks.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole",
+              "Condition": {
+                "StringEquals": {
+                  "aws:SourceAccount": {
+                    "Ref": "AWS::AccountId"
+                  }
+                },
+                "ArnLike": {
+                  "aws:SourceArn": {
+                    "Fn::Sub": "arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:*"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "ReadSourceMetadata",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:GetObject"
+                  ],
+                  "Resource": {
+                    "Fn::Sub": "arn:${AWS::Partition}:s3:::${DocumentBucketName}/samples/*"
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "EFOO"
+          },
+          {
+            "Key": "Stage",
+            "Value": "Week2"
+          },
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${ProjectName}-task-role"
+            }
+          }
+        ]
+      },
+      "Condition": "CreateTaskRole"
+    },
+    "TaskDefinition": {
+      "Type": "AWS::ECS::TaskDefinition",
+      "Properties": {
+        "Family": {
+          "Ref": "ProjectName"
+        },
+        "RequiresCompatibilities": [
+          "FARGATE"
+        ],
+        "NetworkMode": "awsvpc",
+        "Cpu": "256",
+        "Memory": "512",
+        "RuntimePlatform": {
+          "CpuArchitecture": "X86_64",
+          "OperatingSystemFamily": "LINUX"
+        },
+        "ExecutionRoleArn": {
+          "Fn::If": [
+            "CreateExecutionRole",
+            {
+              "Fn::GetAtt": [
+                "ExecutionRole",
+                "Arn"
+              ]
+            },
+            {
+              "Ref": "ExistingExecutionRoleArn"
+            }
+          ]
+        },
+        "TaskRoleArn": {
+          "Fn::If": [
+            "CreateTaskRole",
+            {
+              "Fn::GetAtt": [
+                "TaskRole",
+                "Arn"
+              ]
+            },
+            {
+              "Ref": "ExistingTaskRoleArn"
+            }
+          ]
+        },
+        "ContainerDefinitions": [
+          {
+            "Name": "environment",
+            "Image": {
+              "Ref": "ImageUri"
+            },
+            "Essential": true,
+            "PortMappings": [
+              {
+                "ContainerPort": 8000,
+                "Protocol": "tcp"
+              }
+            ],
+            "Environment": [
+              {
+                "Name": "AWS_REGION",
+                "Value": {
+                  "Ref": "AWS::Region"
+                }
+              },
+              {
+                "Name": "DOCUMENT_BUCKET",
+                "Value": {
+                  "Ref": "DocumentBucketName"
+                }
+              },
+              {
+                "Name": "DOCUMENT_KEY",
+                "Value": "samples/manifest.json"
+              },
+              {
+                "Name": "APP_VERSION",
+                "Value": {
+                  "Ref": "AppVersion"
+                }
+              }
+            ],
+            "LogConfiguration": {
+              "LogDriver": "awslogs",
+              "Options": {
+                "awslogs-group": {
+                  "Ref": "LogGroup"
+                },
+                "awslogs-region": {
+                  "Ref": "AWS::Region"
+                },
+                "awslogs-stream-prefix": "environment"
+              }
+            },
+            "HealthCheck": {
+              "Command": [
+                "CMD",
+                "python",
+                "-c",
+                "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=3).read()"
+              ],
+              "Interval": 30,
+              "Timeout": 5,
+              "Retries": 3,
+              "StartPeriod": 20
+            }
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "EFOO"
+          },
+          {
+            "Key": "Stage",
+            "Value": "Week2"
+          },
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${ProjectName}-task"
+            }
+          }
+        ]
+      }
+    },
+    "Service": {
+      "Type": "AWS::ECS::Service",
+      "Properties": {
+        "Cluster": {
+          "Ref": "Cluster"
+        },
+        "ServiceName": {
+          "Ref": "ProjectName"
+        },
+        "TaskDefinition": {
+          "Ref": "TaskDefinition"
+        },
+        "DesiredCount": 1,
+        "LaunchType": "FARGATE",
+        "PlatformVersion": "LATEST",
+        "EnableECSManagedTags": true,
+        "PropagateTags": "SERVICE",
+        "HealthCheckGracePeriodSeconds": 60,
+        "DeploymentConfiguration": {
+          "MinimumHealthyPercent": 100,
+          "MaximumPercent": 200,
+          "DeploymentCircuitBreaker": {
+            "Enable": true,
+            "Rollback": true
+          }
+        },
+        "NetworkConfiguration": {
+          "AwsvpcConfiguration": {
+            "Subnets": {
+              "Fn::If": [
+                "PrivateTasks",
+                [
+                  {
+                    "Ref": "PrivateSubnetA"
+                  },
+                  {
+                    "Ref": "PrivateSubnetB"
+                  }
+                ],
+                [
+                  {
+                    "Ref": "PublicSubnetA"
+                  },
+                  {
+                    "Ref": "PublicSubnetB"
+                  }
+                ]
+              ]
+            },
+            "SecurityGroups": [
+              {
+                "Ref": "TaskSecurityGroup"
+              }
+            ],
+            "AssignPublicIp": {
+              "Fn::If": [
+                "PrivateTasks",
+                "DISABLED",
+                "ENABLED"
+              ]
+            }
+          }
+        },
+        "LoadBalancers": [
+          {
+            "ContainerName": "environment",
+            "ContainerPort": 8000,
+            "TargetGroupArn": {
+              "Ref": "TargetGroup"
+            }
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "EFOO"
+          },
+          {
+            "Key": "Stage",
+            "Value": "Week2"
+          },
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${ProjectName}-service"
+            }
+          },
+          {
+            "Key": "EgressRoutes",
+            "Value": {
+              "Fn::If": [
+                "PrivateTasks",
+                {
+                  "Fn::Join": [
+                    "/",
+                    [
+                      {
+                        "Fn::Select": [
+                          0,
+                          {
+                            "Fn::Split": [
+                              "|",
+                              {
+                                "Ref": "PrivateDefaultRouteA"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "Fn::Select": [
+                          0,
+                          {
+                            "Fn::Split": [
+                              "|",
+                              {
+                                "Ref": "PrivateDefaultRouteB"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  ]
+                },
+                {
+                  "Fn::Select": [
+                    0,
+                    {
+                      "Fn::Split": [
+                        "|",
+                        {
+                          "Ref": "PublicDefaultRoute"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "DependsOn": [
+        "Listener",
+        "PublicSubnetARoutes",
+        "PublicSubnetBRoutes"
+      ]
+    }
+  },
+  "Outputs": {
+    "BaseUrl": {
+      "Value": {
+        "Fn::Sub": "http://${Alb.DNSName}"
+      }
+    },
+    "DocumentBucketName": {
+      "Value": {
+        "Ref": "DocumentBucketName"
+      }
+    },
+    "ClusterName": {
+      "Value": {
+        "Ref": "Cluster"
+      }
+    },
+    "ServiceName": {
+      "Value": {
+        "Fn::GetAtt": [
+          "Service",
+          "Name"
+        ]
+      }
+    },
+    "TargetGroupArn": {
+      "Value": {
+        "Ref": "TargetGroup"
+      }
+    },
+    "LogGroupName": {
+      "Value": {
+        "Ref": "LogGroup"
+      }
+    },
+    "TaskRoleArn": {
+      "Value": {
+        "Fn::If": [
+          "CreateTaskRole",
+          {
+            "Fn::GetAtt": [
+              "TaskRole",
+              "Arn"
+            ]
+          },
+          {
+            "Ref": "ExistingTaskRoleArn"
+          }
+        ]
+      }
+    },
+    "ExecutionRoleArn": {
+      "Value": {
+        "Fn::If": [
+          "CreateExecutionRole",
+          {
+            "Fn::GetAtt": [
+              "ExecutionRole",
+              "Arn"
+            ]
+          },
+          {
+            "Ref": "ExistingExecutionRoleArn"
+          }
+        ]
+      }
+    },
+    "TaskSecurityGroupId": {
+      "Value": {
+        "Ref": "TaskSecurityGroup"
+      }
+    },
+    "AlbSecurityGroupId": {
+      "Value": {
+        "Ref": "AlbSecurityGroup"
+      }
+    },
+    "TaskPlacement": {
+      "Value": {
+        "Ref": "TaskPlacement"
+      }
+    },
+    "AppVersion": {
+      "Value": {
+        "Ref": "AppVersion"
+      }
+    }
+  }
+}

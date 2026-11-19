@@ -1,0 +1,71 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "EFOO Week2 standalone HTTPS frontend for the existing metadata-only ALB probe. Does not modify bootstrap or runtime stacks.",
+  "Parameters": {
+    "AlbDnsName": {
+      "Type": "String",
+      "AllowedPattern": "[a-zA-Z0-9-]+\\.[a-z0-9-]+\\.elb\\.amazonaws\\.com",
+      "Description": "Existing EFOO ALB DNS name only, without http scheme or path."
+    }
+  },
+  "Resources": {
+    "Frontend": {
+      "Type": "AWS::CloudFront::Distribution",
+      "Properties": {
+        "DistributionConfig": {
+          "Comment": "EFOO Week2 metadata-only HTTPS probe",
+          "Enabled": true,
+          "IPV6Enabled": true,
+          "HttpVersion": "http2",
+          "PriceClass": "PriceClass_100",
+          "Origins": [
+            {
+              "Id": "EfooExistingAlb",
+              "DomainName": {"Ref": "AlbDnsName"},
+              "CustomOriginConfig": {
+                "HTTPPort": 80,
+                "OriginProtocolPolicy": "http-only",
+                "OriginReadTimeout": 30,
+                "OriginKeepaliveTimeout": 5
+              }
+            }
+          ],
+          "DefaultCacheBehavior": {
+            "TargetOriginId": "EfooExistingAlb",
+            "ViewerProtocolPolicy": "redirect-to-https",
+            "AllowedMethods": ["GET", "HEAD", "OPTIONS"],
+            "CachedMethods": ["GET", "HEAD"],
+            "CachePolicyId": "4135ea2d-6df8-44a3-9df3-4b5a84be39ad",
+            "Compress": false
+          },
+          "CustomErrorResponses": [
+            {"ErrorCode": 400, "ErrorCachingMinTTL": 0},
+            {"ErrorCode": 403, "ErrorCachingMinTTL": 0},
+            {"ErrorCode": 404, "ErrorCachingMinTTL": 0},
+            {"ErrorCode": 405, "ErrorCachingMinTTL": 0},
+            {"ErrorCode": 414, "ErrorCachingMinTTL": 0},
+            {"ErrorCode": 416, "ErrorCachingMinTTL": 0},
+            {"ErrorCode": 500, "ErrorCachingMinTTL": 0},
+            {"ErrorCode": 501, "ErrorCachingMinTTL": 0},
+            {"ErrorCode": 502, "ErrorCachingMinTTL": 0},
+            {"ErrorCode": 503, "ErrorCachingMinTTL": 0},
+            {"ErrorCode": 504, "ErrorCachingMinTTL": 0}
+          ],
+          "Restrictions": {"GeoRestriction": {"RestrictionType": "none"}},
+          "ViewerCertificate": {"CloudFrontDefaultCertificate": true}
+        },
+        "Tags": [
+          {"Key": "Project", "Value": "EFOO"},
+          {"Key": "Stage", "Value": "Week2"},
+          {"Key": "Name", "Value": "efoo-week2-frontend"}
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "FrontendUrl": {"Value": {"Fn::Sub": "https://${Frontend.DomainName}"}},
+    "DistributionId": {"Value": {"Ref": "Frontend"}},
+    "DistributionDomainName": {"Value": {"Fn::GetAtt": ["Frontend", "DomainName"]}},
+    "OriginAlbDnsName": {"Value": {"Ref": "AlbDnsName"}}
+  }
+}

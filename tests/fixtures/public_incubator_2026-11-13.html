@@ -1,0 +1,813 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <script src="/theme/assets/js/base.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- CSS 전역 스타일 (로드 순서: reset → tokens → typography → layout) -->
+  <link rel="stylesheet" href="/theme/assets/css/reset.css">
+  <link rel="stylesheet" href="/theme/assets/css/tokens.css">
+  <link rel="stylesheet" href="/theme/assets/css/typography.css">
+  <link rel="stylesheet" href="/theme/assets/css/layout.css">
+  
+  <!-- 컴포넌트 스타일 -->
+  <link rel="stylesheet" href="/theme/assets/css/components/button.css">
+  <link rel="stylesheet" href="/theme/assets/css/components/card.css">
+  <link rel="stylesheet" href="/theme/assets/css/components/badge.css">
+  <link rel="stylesheet" href="/theme/assets/css/components/form.css">
+  <link rel="stylesheet" href="/theme/assets/css/components/nav.css">
+  <link rel="stylesheet" href="/theme/assets/css/components/lang-switcher.css">
+
+
+  <!-- hreflang 태그 (SEO) -->
+  <link rel="alternate" hreflang="ko" href="/theme/pages/facilities/detail.php?id=3&date=2026-11-13">
+  <link rel="alternate" hreflang="en" href="/theme/en/pages/facilities/detail.php?id=3&date=2026-11-13">
+  <link rel="alternate" hreflang="zh" href="/theme/zh/pages/facilities/detail.php?id=3&date=2026-11-13">
+
+  <!-- MOCK 데이터 -->
+  <script src="/theme/assets/js/mock-data.js?v=1794565825"></script>
+
+  <link rel="stylesheet" href="/theme/assets/css/pages/facilities/detail.css">
+</head>
+
+<body>
+
+  <!-- HEADER -->
+  <!-- ═══════════════════════════════════════════════════════════
+     1단: 유틸리티 바 (스크롤 시 숨김)
+     ═══════════════════════════════════════════════════════════ -->
+<div class="hy-utility-bar" id="utility-bar">
+  <div class="hy-utility-bar__inner">
+    <span class="hy-utility-bar__title">HY-SQUARE · 한양대학교 ERICA 복지포털</span>
+    <div class="hy-utility-bar__actions">
+      <!-- 언어 전환 (KOR / ENG / CHN 인라인 3버튼) -->
+      <div class="hy-lang-switcher" id="lang-switcher">
+      <a href="/theme/pages/facilities/detail.php?id=3&date=2026-11-13"
+       class="hy-lang-btn is-active"
+       lang="ko">KOR</a>
+      <a href="/theme/en/pages/facilities/detail.php?id=3&date=2026-11-13"
+       class="hy-lang-btn "
+       lang="en">ENG</a>
+      <a href="/theme/zh/pages/facilities/detail.php?id=3&date=2026-11-13"
+       class="hy-lang-btn "
+       lang="zh">CHN</a>
+  </div>
+
+      <span class="hy-utility-bar__divider"></span>
+
+              <a href="/theme/pages/auth/login.php" class="hy-utility-bar__user-btn" id="btn-utility-login">
+          로그인        </a>
+      
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     2단: 메인 네비게이션 (로고 + GNB, sticky 고정)
+     ═══════════════════════════════════════════════════════════ -->
+<nav class="hy-main-nav" id="main-nav" role="navigation" aria-label="메인">
+  <div class="hy-main-nav__inner">
+    <a href="/theme/pages/home.php" class="hy-main-nav__logo" aria-label="장학복지회 홈으로 이동">
+      <img src="/theme/assets/img/logo-full-standard.svg" alt="HY-SQUARE">
+    </a>
+
+    <!-- PC GNB 메뉴 -->
+    <div class="hy-main-nav__menu" id="main-nav-menu">
+      <a href="/theme/pages/home.php"
+        class="hy-main-nav__item "
+        data-page="home">
+        메인      </a>
+      <a href="/theme/pages/facilities/index.php"
+        class="hy-main-nav__item is-active"
+        data-page="facilities">
+        시설안내      </a>
+      <a href="/theme/pages/payment/ticket-shops.php"
+        class="hy-main-nav__item " data-page="ticket">
+        식권구매      </a>
+      <a href="/theme/pages/notice/index.php"
+        class="hy-main-nav__item " data-page="notice">
+        공지사항      </a>
+            <a href="/theme/pages/mypage/index.php"
+        class="hy-main-nav__item " data-page="mypage">
+        마이페이지      </a>
+    </div>
+
+    <!-- 모바일 햄버거 버튼 -->
+    <button class="hy-main-nav__hamburger" id="btn-hamburger" aria-label="메뉴 열기" aria-expanded="false">
+      <span class="material-symbols-sharp">menu</span>
+    </button>
+  </div>
+</nav>
+
+<!-- 스크롤 동작: 유틸리티 바 숨김/표시 -->
+<script>
+  (function () {
+    var utilityBar = document.getElementById('utility-bar');
+    if (!utilityBar) return;
+
+    var lastScrollY = 0;
+    var ticking = false;
+
+    function onScroll() {
+      var currentScrollY = window.scrollY;
+      if (currentScrollY > 60) {
+        utilityBar.classList.add('is-hidden');
+      } else {
+        utilityBar.classList.remove('is-hidden');
+      }
+      lastScrollY = currentScrollY;
+      ticking = false;
+    }
+
+    window.addEventListener('scroll', function () {
+      if (!ticking) {
+        window.requestAnimationFrame(onScroll);
+        ticking = true;
+      }
+    }, { passive: true });
+  })();
+
+  </script>
+  <!-- GNB -->
+    <!-- 모바일 하단 GNB 탭바 (PC에서는 CSS로 숨김) -->
+  <nav class="hy-gnb" id="site-gnb" role="navigation" aria-label="메인">
+    <div class="hy-gnb__inner">
+      <a href="/theme/pages/home.php" class="hy-gnb__item " data-page="home">
+        <span class="material-symbols-sharp" aria-hidden="true">home</span>
+        <span class="hy-gnb__label">메인</span>
+      </a>
+      <a href="/theme/pages/facilities/index.php" class="hy-gnb__item is-active" data-page="facilities">
+        <span class="material-symbols-sharp" aria-hidden="true">business</span>
+        <span class="hy-gnb__label">시설안내</span>
+      </a>
+      <a href="/theme/pages/payment/ticket-shops.php" class="hy-gnb__item " data-page="ticket">
+        <span class="material-symbols-sharp" aria-hidden="true">local_dining</span>
+        <span class="hy-gnb__label">식권구매</span>
+      </a>
+      <a href="/theme/pages/notice/index.php" class="hy-gnb__item " data-page="notice">
+        <span class="material-symbols-sharp" aria-hidden="true">campaign</span>
+        <span class="hy-gnb__label">공지사항</span>
+      </a>
+            <a href="/theme/pages/mypage/index.php" class="hy-gnb__item " data-page="mypage">
+        <span class="material-symbols-sharp" aria-hidden="true">person</span>
+        <span class="hy-gnb__label">마이페이지</span>
+      </a>
+    </div>
+  </nav>
+
+  <div class="hy-page-wrapper">
+    <main class="hy-main">
+
+      <!-- 커버 이미지 -->
+      <div class="fac-cover hy-relative">
+                  <img src="/uploads/facilities/fac_6a8de00b21f8e.jpg" alt="창업보육센터식당" class="fac-cover__img">
+              </div>
+
+      <!-- 시설 기본 정보 섹션 -->
+      <section class="hy-section">
+
+        <div class="fac-header">
+          <div class="fac-category">구내식당</div>
+          <div class="fac-name">창업보육센터식당</div>
+        </div>
+
+        <table class="info-table">
+          <tbody>
+            <tr>
+              <td class="info-label">위치</td>
+              <td class="info-value">창업보육센터 지하1층</td>
+            </tr>
+                        <tr>
+              <td class="info-label">건물 번호</td>
+              <td class="info-value">308</td>
+            </tr>
+                                      <tr>
+                <td class="info-label">연락처</td>
+                <td class="info-value">010-2828-6269</td>
+              </tr>
+                        <tr>
+              <td class="info-label">영업시간</td>
+              <td class="info-value">중식 11:30~13:30 <br />
+석식 17:00~19:00 (18:30배식대마감)</td>
+            </tr>
+          </tbody>
+        </table>
+
+                  <div class="fac-notice-box">
+            <div class="fac-notice-box__label">📢 운영 공지</div>
+            <div class="fac-notice-box__text">매일의 정성과 철저한 청결로 안심하고 맛있게 먹을 수 있는 건강한 한 끼를 만듭니다.</div>
+          </div>
+        
+      </section>
+
+              <!-- 식단 안내 (구내식당 전용) -->
+        <section class="hy-section menu-section">
+          <div class="menu-section-header">
+            <div class="hy-section-title" style="margin-bottom: 0;">식단 안내</div>
+            <div class="menu-view-switcher">
+              <button type="button" class="view-switch-btn is-active" id="btn-mode-weekly" onclick="switchViewMode('weekly')">
+                <span class="material-symbols-sharp">view_week</span>
+                <span>주간메뉴보기</span>
+              </button>
+              <button type="button" class="view-switch-btn " id="btn-mode-daily" onclick="switchViewMode('daily')">
+                <span class="material-symbols-sharp">calendar_today</span>
+                <span>일별로 보기</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 주(Week) 네비게이션 컨트롤러 -->
+          <div class="week-nav-bar">
+            <button type="button" class="week-nav-btn" onclick="goToWeek('2026-11-06')" title="이전 주">
+              <span class="material-symbols-sharp">chevron_left</span>
+              <span class="week-nav-btn__text">이전 주</span>
+            </button>
+            <div class="week-nav-center">
+              <span class="week-range-text">
+                <strong>2026.11.08(일)</strong> ~ <strong>11.14(토)</strong>
+              </span>
+              <button type="button" class="today-jump-btn" onclick="goToWeek('2026-11-13')">오늘로 이동</button>
+            </div>
+            <button type="button" class="week-nav-btn" onclick="goToWeek('2026-11-20')" title="다음 주">
+              <span class="week-nav-btn__text">다음 주</span>
+              <span class="material-symbols-sharp">chevron_right</span>
+            </button>
+          </div>
+
+          <!-- 1. 주간메뉴보기 패널 (Weekly View - 썸네일 제외 텍스트 전용) -->
+          <div id="view-pane-weekly" class="menu-view-pane is-active">
+            <!-- 데스크톱용 주간 식단표 테이블 (일요일 ~ 토요일) -->
+            <div class="weekly-table-wrap">
+              <table class="weekly-table">
+                <thead>
+                  <tr>
+                    <th class="th-meal">구분</th>
+                                          <th class="th-day ">
+                        <span class="th-day-name is-sun">일</span>
+                        <span class="th-day-date">11.08</span>
+                                              </th>
+                                          <th class="th-day ">
+                        <span class="th-day-name ">월</span>
+                        <span class="th-day-date">11.09</span>
+                                              </th>
+                                          <th class="th-day ">
+                        <span class="th-day-name ">화</span>
+                        <span class="th-day-date">11.10</span>
+                                              </th>
+                                          <th class="th-day ">
+                        <span class="th-day-name ">수</span>
+                        <span class="th-day-date">11.11</span>
+                                              </th>
+                                          <th class="th-day ">
+                        <span class="th-day-name ">목</span>
+                        <span class="th-day-date">11.12</span>
+                                              </th>
+                                          <th class="th-day is-today">
+                        <span class="th-day-name ">금</span>
+                        <span class="th-day-date">11.13</span>
+                        <span class="th-today-badge">오늘</span>                      </th>
+                                          <th class="th-day ">
+                        <span class="th-day-name is-sat">토</span>
+                        <span class="th-day-date">11.14</span>
+                                              </th>
+                                      </tr>
+                </thead>
+                <tbody>
+                                      <tr>
+                      <th class="td-meal-label">
+                        <span class="meal-badge meal-badge--breakfast">조식</span>
+                      </th>
+                                              <td class="td-menu-cell ">
+                          <span class="weekly-empty-dash">—</span>                        </td>
+                                              <td class="td-menu-cell ">
+                          <span class="weekly-empty-dash">—</span>                        </td>
+                                              <td class="td-menu-cell ">
+                          <span class="weekly-empty-dash">—</span>                        </td>
+                                              <td class="td-menu-cell ">
+                          <span class="weekly-empty-dash">—</span>                        </td>
+                                              <td class="td-menu-cell ">
+                          <span class="weekly-empty-dash">—</span>                        </td>
+                                              <td class="td-menu-cell is-today">
+                          <span class="weekly-empty-dash">—</span>                        </td>
+                                              <td class="td-menu-cell ">
+                          <span class="weekly-empty-dash">—</span>                        </td>
+                                          </tr>
+                                      <tr>
+                      <th class="td-meal-label">
+                        <span class="meal-badge meal-badge--lunch">중식</span>
+                      </th>
+                                              <td class="td-menu-cell ">
+                          <span class="weekly-empty-dash">—</span>                        </td>
+                                              <td class="td-menu-cell ">
+                                                      <div class="weekly-text-item">
+                              <div class="weekly-item-name">정통고추장제육볶음 Stir-Fried Pork with Kimchi</div>
+                                                              <div class="weekly-item-price">6,500원</div>
+                                                                                            <div class="weekly-item-desc">삼색계란찜/아삭콩나물무침/시래기된장국/잡곡밥/배추김치/양배추샐러드*드레싱</div>
+                                                                                        </div>
+                                                  </td>
+                                              <td class="td-menu-cell ">
+                                                      <div class="weekly-text-item">
+                              <div class="weekly-item-name">훈제오리숙주볶음밥 Smoked Duck</div>
+                                                              <div class="weekly-item-price">6,500원</div>
+                                                                                            <div class="weekly-item-desc">감자전/로제분모자떡볶이/부추겉절이/김치국/깍두기/양배추샐러드*드레싱</div>
+                                                                                        </div>
+                                                  </td>
+                                              <td class="td-menu-cell ">
+                                                      <div class="weekly-text-item">
+                              <div class="weekly-item-name">이모카세들기름막국수 Perilla Oil Makguksu</div>
+                                                              <div class="weekly-item-price">6,500원</div>
+                                                                                            <div class="weekly-item-desc">파채치킨까스&amp;파닭소스/청경채겉절이/유부장국/잡곡밥/배추김치/빼뺴로데이-초코픽</div>
+                                                                                        </div>
+                                                  </td>
+                                              <td class="td-menu-cell ">
+                                                      <div class="weekly-text-item">
+                              <div class="weekly-item-name">아비꼬카레라이스 Abiko Curry Rice</div>
+                                                              <div class="weekly-item-price">6,500원</div>
+                                                                                            <div class="weekly-item-desc">닭안심비엔나볶음/비트무우피클/가츠오장국/쌀밥/배추김치/양배추샐러드*드레싱</div>
+                                                                                        </div>
+                                                  </td>
+                                              <td class="td-menu-cell is-today">
+                                                      <div class="weekly-text-item">
+                              <div class="weekly-item-name">뚝)등촌식쇠고기샤브샤브 Fish Cake Banquet Noodles</div>
+                                                              <div class="weekly-item-price">6,500원</div>
+                                                                                            <div class="weekly-item-desc">떡갈비야채볶음/도토리청포묵김가루무침/무말랭이/잡곡밥/배추김치/양배추샐러드*드레싱</div>
+                                                                                        </div>
+                                                  </td>
+                                              <td class="td-menu-cell ">
+                          <span class="weekly-empty-dash">—</span>                        </td>
+                                          </tr>
+                                      <tr>
+                      <th class="td-meal-label">
+                        <span class="meal-badge meal-badge--dinner">석식</span>
+                      </th>
+                                              <td class="td-menu-cell ">
+                          <span class="weekly-empty-dash">—</span>                        </td>
+                                              <td class="td-menu-cell ">
+                                                      <div class="weekly-text-item">
+                              <div class="weekly-item-name">겉절이비빔밥*달걀후라이 Grilled Chicken Curry Rice</div>
+                                                              <div class="weekly-item-price">6,500원</div>
+                                                                                            <div class="weekly-item-desc">치킨강정가라아게/햄어묵볶음/쌀밥/땡초콩나물국/배추김치/양배추샐러드*드레싱</div>
+                                                                                        </div>
+                                                  </td>
+                                              <td class="td-menu-cell ">
+                                                      <div class="weekly-text-item">
+                              <div class="weekly-item-name">숯불간장돈불고기*당면사리 Soy Sauce Pork Bulgogi</div>
+                                                              <div class="weekly-item-price">6,500원</div>
+                                                                                            <div class="weekly-item-desc">매콤두부조림/쫑상추겉절이/쌀밥/미역국/배추김치/양배추샐러드*드레싱</div>
+                                                                                        </div>
+                                                  </td>
+                                              <td class="td-menu-cell ">
+                                                      <div class="weekly-text-item">
+                              <div class="weekly-item-name">해물쟁반짜장면 Seafood Platter Jajangmyeon</div>
+                                                              <div class="weekly-item-price">6,500원</div>
+                                                                                            <div class="weekly-item-desc">얼큰순부두탕/에그그린빈스크램블/야채겉절이/쌀밥/배추김치/양배추샐러드*드레싱</div>
+                                                                                        </div>
+                                                  </td>
+                                              <td class="td-menu-cell ">
+                                                      <div class="weekly-text-item">
+                              <div class="weekly-item-name">얼큰순살감자탕 Boneless Pork Bone Soup</div>
+                                                              <div class="weekly-item-price">6,500원</div>
+                                                                                            <div class="weekly-item-desc">세모사*칠리소스/연두부카프레제/매운고추지/쌀밥/깍두기/양배추샐러드*드레싱</div>
+                                                                                        </div>
+                                                  </td>
+                                              <td class="td-menu-cell is-today">
+                                                      <div class="weekly-text-item">
+                              <div class="weekly-item-name">참치듬뿍김치찌개 Tuna Kimchi Stew</div>
+                                                              <div class="weekly-item-price">6,500원</div>
+                                                                                            <div class="weekly-item-desc">한입돈까스*케찹/분식집쫄면/호박새우젓볶음/쌀밥/깍두기/양배추샐러드*드레싱</div>
+                                                                                        </div>
+                                                  </td>
+                                              <td class="td-menu-cell ">
+                          <span class="weekly-empty-dash">—</span>                        </td>
+                                          </tr>
+                                  </tbody>
+              </table>
+            </div>
+
+            <!-- 모바일용 주간 요일별 텍스트 카드 리스트 -->
+            <div class="weekly-mobile-cards">
+                              <div class="weekly-day-card ">
+                  <div class="weekly-day-card__header">
+                    <span class="card-day-name is-sun">일요일</span>
+                    <span class="card-day-date">11월 08일</span>
+                                      </div>
+                  <div class="weekly-day-card__body">
+                    <div class="weekly-m-empty">등록된 식단이 없습니다.</div>                  </div>
+                </div>
+                              <div class="weekly-day-card ">
+                  <div class="weekly-day-card__header">
+                    <span class="card-day-name ">월요일</span>
+                    <span class="card-day-date">11월 09일</span>
+                                      </div>
+                  <div class="weekly-day-card__body">
+                                          <div class="weekly-m-meal-block">
+                        <div class="weekly-m-meal-label">
+                          <span class="meal-badge meal-badge--lunch">중식</span>
+                        </div>
+                        <div class="weekly-m-meal-items">
+                                                      <div class="weekly-m-item">
+                              <div class="weekly-m-item__top">
+                                <span class="weekly-m-item__name">정통고추장제육볶음 Stir-Fried Pork with Kimchi</span>
+                                <span class="weekly-m-item__price">6,500원</span>
+                              </div>
+                                                              <div class="weekly-m-item__desc">삼색계란찜/아삭콩나물무침/시래기된장국/잡곡밥/배추김치/양배추샐러드*드레싱</div>
+                                                                                        </div>
+                                                  </div>
+                      </div>
+                                          <div class="weekly-m-meal-block">
+                        <div class="weekly-m-meal-label">
+                          <span class="meal-badge meal-badge--dinner">석식</span>
+                        </div>
+                        <div class="weekly-m-meal-items">
+                                                      <div class="weekly-m-item">
+                              <div class="weekly-m-item__top">
+                                <span class="weekly-m-item__name">겉절이비빔밥*달걀후라이 Grilled Chicken Curry Rice</span>
+                                <span class="weekly-m-item__price">6,500원</span>
+                              </div>
+                                                              <div class="weekly-m-item__desc">치킨강정가라아게/햄어묵볶음/쌀밥/땡초콩나물국/배추김치/양배추샐러드*드레싱</div>
+                                                                                        </div>
+                                                  </div>
+                      </div>
+                                      </div>
+                </div>
+                              <div class="weekly-day-card ">
+                  <div class="weekly-day-card__header">
+                    <span class="card-day-name ">화요일</span>
+                    <span class="card-day-date">11월 10일</span>
+                                      </div>
+                  <div class="weekly-day-card__body">
+                                          <div class="weekly-m-meal-block">
+                        <div class="weekly-m-meal-label">
+                          <span class="meal-badge meal-badge--lunch">중식</span>
+                        </div>
+                        <div class="weekly-m-meal-items">
+                                                      <div class="weekly-m-item">
+                              <div class="weekly-m-item__top">
+                                <span class="weekly-m-item__name">훈제오리숙주볶음밥 Smoked Duck</span>
+                                <span class="weekly-m-item__price">6,500원</span>
+                              </div>
+                                                              <div class="weekly-m-item__desc">감자전/로제분모자떡볶이/부추겉절이/김치국/깍두기/양배추샐러드*드레싱</div>
+                                                                                        </div>
+                                                  </div>
+                      </div>
+                                          <div class="weekly-m-meal-block">
+                        <div class="weekly-m-meal-label">
+                          <span class="meal-badge meal-badge--dinner">석식</span>
+                        </div>
+                        <div class="weekly-m-meal-items">
+                                                      <div class="weekly-m-item">
+                              <div class="weekly-m-item__top">
+                                <span class="weekly-m-item__name">숯불간장돈불고기*당면사리 Soy Sauce Pork Bulgogi</span>
+                                <span class="weekly-m-item__price">6,500원</span>
+                              </div>
+                                                              <div class="weekly-m-item__desc">매콤두부조림/쫑상추겉절이/쌀밥/미역국/배추김치/양배추샐러드*드레싱</div>
+                                                                                        </div>
+                                                  </div>
+                      </div>
+                                      </div>
+                </div>
+                              <div class="weekly-day-card ">
+                  <div class="weekly-day-card__header">
+                    <span class="card-day-name ">수요일</span>
+                    <span class="card-day-date">11월 11일</span>
+                                      </div>
+                  <div class="weekly-day-card__body">
+                                          <div class="weekly-m-meal-block">
+                        <div class="weekly-m-meal-label">
+                          <span class="meal-badge meal-badge--lunch">중식</span>
+                        </div>
+                        <div class="weekly-m-meal-items">
+                                                      <div class="weekly-m-item">
+                              <div class="weekly-m-item__top">
+                                <span class="weekly-m-item__name">이모카세들기름막국수 Perilla Oil Makguksu</span>
+                                <span class="weekly-m-item__price">6,500원</span>
+                              </div>
+                                                              <div class="weekly-m-item__desc">파채치킨까스&amp;파닭소스/청경채겉절이/유부장국/잡곡밥/배추김치/빼뺴로데이-초코픽</div>
+                                                                                        </div>
+                                                  </div>
+                      </div>
+                                          <div class="weekly-m-meal-block">
+                        <div class="weekly-m-meal-label">
+                          <span class="meal-badge meal-badge--dinner">석식</span>
+                        </div>
+                        <div class="weekly-m-meal-items">
+                                                      <div class="weekly-m-item">
+                              <div class="weekly-m-item__top">
+                                <span class="weekly-m-item__name">해물쟁반짜장면 Seafood Platter Jajangmyeon</span>
+                                <span class="weekly-m-item__price">6,500원</span>
+                              </div>
+                                                              <div class="weekly-m-item__desc">얼큰순부두탕/에그그린빈스크램블/야채겉절이/쌀밥/배추김치/양배추샐러드*드레싱</div>
+                                                                                        </div>
+                                                  </div>
+                      </div>
+                                      </div>
+                </div>
+                              <div class="weekly-day-card ">
+                  <div class="weekly-day-card__header">
+                    <span class="card-day-name ">목요일</span>
+                    <span class="card-day-date">11월 12일</span>
+                                      </div>
+                  <div class="weekly-day-card__body">
+                                          <div class="weekly-m-meal-block">
+                        <div class="weekly-m-meal-label">
+                          <span class="meal-badge meal-badge--lunch">중식</span>
+                        </div>
+                        <div class="weekly-m-meal-items">
+                                                      <div class="weekly-m-item">
+                              <div class="weekly-m-item__top">
+                                <span class="weekly-m-item__name">아비꼬카레라이스 Abiko Curry Rice</span>
+                                <span class="weekly-m-item__price">6,500원</span>
+                              </div>
+                                                              <div class="weekly-m-item__desc">닭안심비엔나볶음/비트무우피클/가츠오장국/쌀밥/배추김치/양배추샐러드*드레싱</div>
+                                                                                        </div>
+                                                  </div>
+                      </div>
+                                          <div class="weekly-m-meal-block">
+                        <div class="weekly-m-meal-label">
+                          <span class="meal-badge meal-badge--dinner">석식</span>
+                        </div>
+                        <div class="weekly-m-meal-items">
+                                                      <div class="weekly-m-item">
+                              <div class="weekly-m-item__top">
+                                <span class="weekly-m-item__name">얼큰순살감자탕 Boneless Pork Bone Soup</span>
+                                <span class="weekly-m-item__price">6,500원</span>
+                              </div>
+                                                              <div class="weekly-m-item__desc">세모사*칠리소스/연두부카프레제/매운고추지/쌀밥/깍두기/양배추샐러드*드레싱</div>
+                                                                                        </div>
+                                                  </div>
+                      </div>
+                                      </div>
+                </div>
+                              <div class="weekly-day-card is-today">
+                  <div class="weekly-day-card__header">
+                    <span class="card-day-name ">금요일</span>
+                    <span class="card-day-date">11월 13일</span>
+                    <span class="card-today-badge">오늘</span>                  </div>
+                  <div class="weekly-day-card__body">
+                                          <div class="weekly-m-meal-block">
+                        <div class="weekly-m-meal-label">
+                          <span class="meal-badge meal-badge--lunch">중식</span>
+                        </div>
+                        <div class="weekly-m-meal-items">
+                                                      <div class="weekly-m-item">
+                              <div class="weekly-m-item__top">
+                                <span class="weekly-m-item__name">뚝)등촌식쇠고기샤브샤브 Fish Cake Banquet Noodles</span>
+                                <span class="weekly-m-item__price">6,500원</span>
+                              </div>
+                                                              <div class="weekly-m-item__desc">떡갈비야채볶음/도토리청포묵김가루무침/무말랭이/잡곡밥/배추김치/양배추샐러드*드레싱</div>
+                                                                                        </div>
+                                                  </div>
+                      </div>
+                                          <div class="weekly-m-meal-block">
+                        <div class="weekly-m-meal-label">
+                          <span class="meal-badge meal-badge--dinner">석식</span>
+                        </div>
+                        <div class="weekly-m-meal-items">
+                                                      <div class="weekly-m-item">
+                              <div class="weekly-m-item__top">
+                                <span class="weekly-m-item__name">참치듬뿍김치찌개 Tuna Kimchi Stew</span>
+                                <span class="weekly-m-item__price">6,500원</span>
+                              </div>
+                                                              <div class="weekly-m-item__desc">한입돈까스*케찹/분식집쫄면/호박새우젓볶음/쌀밥/깍두기/양배추샐러드*드레싱</div>
+                                                                                        </div>
+                                                  </div>
+                      </div>
+                                      </div>
+                </div>
+                              <div class="weekly-day-card ">
+                  <div class="weekly-day-card__header">
+                    <span class="card-day-name is-sat">토요일</span>
+                    <span class="card-day-date">11월 14일</span>
+                                      </div>
+                  <div class="weekly-day-card__body">
+                    <div class="weekly-m-empty">등록된 식단이 없습니다.</div>                  </div>
+                </div>
+                          </div>
+          </div>
+
+          <!-- 2. 일별로 보기 패널 (Daily View) -->
+          <div id="view-pane-daily" class="menu-view-pane ">
+            <!-- 일요일부터 토요일까지 7일 일자 선택 스트립 -->
+            <div class="week-days-strip">
+                              <button type="button" 
+                  class="week-day-pill  "
+                  onclick="selectDay('2026-11-08')">
+                  <span class="day-name is-sun">일</span>
+                  <span class="day-num">08</span>
+                                  </button>
+                              <button type="button" 
+                  class="week-day-pill  "
+                  onclick="selectDay('2026-11-09')">
+                  <span class="day-name ">월</span>
+                  <span class="day-num">09</span>
+                                  </button>
+                              <button type="button" 
+                  class="week-day-pill  "
+                  onclick="selectDay('2026-11-10')">
+                  <span class="day-name ">화</span>
+                  <span class="day-num">10</span>
+                                  </button>
+                              <button type="button" 
+                  class="week-day-pill  "
+                  onclick="selectDay('2026-11-11')">
+                  <span class="day-name ">수</span>
+                  <span class="day-num">11</span>
+                                  </button>
+                              <button type="button" 
+                  class="week-day-pill  "
+                  onclick="selectDay('2026-11-12')">
+                  <span class="day-name ">목</span>
+                  <span class="day-num">12</span>
+                                  </button>
+                              <button type="button" 
+                  class="week-day-pill is-selected is-today"
+                  onclick="selectDay('2026-11-13')">
+                  <span class="day-name ">금</span>
+                  <span class="day-num">13</span>
+                  <span class="today-dot" title="오늘"></span>                </button>
+                              <button type="button" 
+                  class="week-day-pill  "
+                  onclick="selectDay('2026-11-14')">
+                  <span class="day-name is-sat">토</span>
+                  <span class="day-num">14</span>
+                                  </button>
+                          </div>
+
+            <!-- 선택된 일자의 메뉴 목록 (2Grid & 상하 배치) -->
+            <div class="menu-group"><div class="menu-group__title"><span class="meal-badge meal-badge--lunch">중식</span></div><div class="menu-grid-2col"><div class="menu-card-v"><div class="menu-card-v__img-wrap"><img src="/uploads/facilities/menu_1794535968_6af672203e68a.jpg" class="menu-card-v__img" alt="뚝)등촌식쇠고기샤브샤브 Fish Cake Banquet Noodles"></div><div class="menu-card-v__body"><div class="menu-card-v__name">뚝)등촌식쇠고기샤브샤브 Fish Cake Banquet Noodles</div><div class="menu-card-v__desc">떡갈비야채볶음/도토리청포묵김가루무침/무말랭이/잡곡밥/배추김치/양배추샐러드*드레싱</div><div class="menu-card-v__bottom"><span class="menu-card-v__price">6,500원</span></div></div></div></div></div><div class="menu-group"><div class="menu-group__title"><span class="meal-badge meal-badge--dinner">석식</span></div><div class="menu-grid-2col"><div class="menu-card-v"><div class="menu-card-v__img-wrap"><div class="menu-card-v__fallback"><img src="/theme/assets/img/HYU_logo_singlecolor.svg" alt="한양대학교" style="width: 40%; height: auto; object-fit: contain;"></div></div><div class="menu-card-v__body"><div class="menu-card-v__name">참치듬뿍김치찌개 Tuna Kimchi Stew</div><div class="menu-card-v__desc">한입돈까스*케찹/분식집쫄면/호박새우젓볶음/쌀밥/깍두기/양배추샐러드*드레싱</div><div class="menu-card-v__bottom"><span class="menu-card-v__price">6,500원</span></div></div></div></div></div>          </div>
+        </section>
+      
+      <!-- 상세 정보 -->
+      <section class="hy-section hy-hidden">
+        <div class="hy-section-title">상세 정보</div>
+        <div class="shop-description-area">
+          <div class="fac-empty-msg--center">등록된 상세 정보가 없습니다. 메뉴 및 운영정보 준비중입니다.</div>        </div>
+      </section>
+
+      <div class="hy-flex hy-justify-center hy-mt-4 hy-mb-6">
+        <button class="hy-btn hy-text-white fac-back-btn" onclick="location.href='/theme/pages/facilities/index.php'">
+          <span class="material-symbols-sharp fac-back-btn__icon">arrow_back</span> 목록으로 돌아가기        </button>
+      </div>
+
+    </main>
+
+    <!-- RNB -->
+    <!-- 사이드바 영역 -->
+<style>
+  /* PC 모드: .hy-sidebar__utility 숨김 */
+  @media (min-width: 1025px) {
+    .hy-sidebar__utility {
+      display: none !important;
+    }
+  }
+</style>
+<div class="hy-sidebar-overlay" id="site-sidebar-overlay"></div>
+<aside class="hy-sidebar" id="site-sidebar">
+  <!-- 모바일 유틸리티 영역 (햄버거 메뉴 상단) -->
+  <div class="hy-sidebar__utility">
+    <div class="hy-flex hy-justify-between hy-items-center hy-mb-3">
+      <div class="hy-lang-switcher" id="lang-switcher">
+      <a href="/theme/pages/facilities/detail.php?id=3&date=2026-11-13"
+       class="hy-lang-btn is-active"
+       lang="ko">KOR</a>
+      <a href="/theme/en/pages/facilities/detail.php?id=3&date=2026-11-13"
+       class="hy-lang-btn "
+       lang="en">ENG</a>
+      <a href="/theme/zh/pages/facilities/detail.php?id=3&date=2026-11-13"
+       class="hy-lang-btn "
+       lang="zh">CHN</a>
+  </div>
+      <button class="hy-sidebar__close" id="btn-sidebar-close" aria-label="닫기">
+        <span class="material-symbols-sharp">close</span>
+      </button>
+    </div>
+  </div>
+
+      <!-- 로그아웃 상태 -->
+    <div class="hy-section hy-p-5 hy-text-center">
+      <div class="text-h4 hy-mb-2">
+        <span class="material-symbols-sharp"
+          style="font-size: 20px; vertical-align: text-bottom; color: var(--hy-color-neutral-400);">lock</span>
+        로그인이 필요합니다      </div>
+      <div class="text-p hy-text-secondary hy-mb-4">
+        장학복지회 서비스를 이용하시려면 로그인을 해주세요.      </div>
+      <a href="/theme/pages/auth/login.php" class="hy-btn hy-btn--primary hy-w-full"
+        style="letter-spacing: 0.08em;">
+        <span class="material-symbols-sharp">login</span> LOG-IN
+      </a>
+    </div>
+  </aside>
+<script>
+  // PHP로 렌더링된 사이드바가 있으면 JS Mock 렌더링을 우회하기 위한 플래그
+  window.__SIDEBAR_RENDERED_BY_PHP__ = true;
+
+  // 햄버거 메뉴 ↔ 사이드바 토글
+  (function () {
+    var hamburger = document.getElementById('btn-hamburger');
+    var sidebar = document.getElementById('site-sidebar');
+    var overlay = document.getElementById('site-sidebar-overlay');
+    var closeBtn = document.getElementById('btn-sidebar-close');
+
+    function openSidebar() {
+      if (sidebar) sidebar.classList.add('is-open');
+      if (overlay) overlay.classList.add('is-active');
+      if (hamburger) hamburger.setAttribute('aria-expanded', 'true');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeSidebar() {
+      if (sidebar) sidebar.classList.remove('is-open');
+      if (overlay) overlay.classList.remove('is-active');
+      if (hamburger) hamburger.setAttribute('aria-expanded', 'false');
+      document.body.style.overflow = '';
+    }
+
+    // PC 모드(≥1025px) 전환 시 모바일 오프캔버스 오버레이 잠금 해제 및 본문 정상 스크롤 보장
+    function syncViewportScrollState() {
+      if (window.innerWidth > 1024) {
+        if (sidebar && sidebar.classList.contains('is-open')) {
+          sidebar.classList.remove('is-open');
+        }
+        if (overlay && overlay.classList.contains('is-active')) {
+          overlay.classList.remove('is-active');
+        }
+        if (hamburger) {
+          hamburger.setAttribute('aria-expanded', 'false');
+        }
+        document.body.style.overflow = '';
+      } else if (!sidebar || !sidebar.classList.contains('is-open')) {
+        document.body.style.overflow = '';
+      }
+    }
+    syncViewportScrollState();
+    window.addEventListener('resize', syncViewportScrollState);
+
+    if (hamburger) hamburger.addEventListener('click', openSidebar);
+    if (overlay) overlay.addEventListener('click', closeSidebar);
+    if (closeBtn) closeBtn.addEventListener('click', closeSidebar);
+  })();
+</script>
+  </div>
+
+  <footer class="hy-footer" id="site-footer">
+  <div class="hy-footer__inner">
+    <!-- <div class="hy-footer__logo">한양대학교 ERICA 장학복지회</div>
+    <div class="hy-footer__info">
+      한양대학교 ERICA 캠퍼스 장학복지회<br>
+      경기도 안산시 상록구 한양대학로 55<br>
+      TEL. 031-000-0000 &nbsp;|&nbsp; E-mail. welfare@hanyang.ac.kr    </div> -->
+    <div class="hy-footer__copy">
+      © 2026 Hanyang University All rights reserved.    </div>
+  </div>
+</footer>
+  <script>
+    let currentViewMode = 'weekly';
+    const facId = 3;
+
+    function switchViewMode(mode) {
+      currentViewMode = mode;
+      const dailyBtn = document.getElementById('btn-mode-daily');
+      const weeklyBtn = document.getElementById('btn-mode-weekly');
+      const dailyPane = document.getElementById('view-pane-daily');
+      const weeklyPane = document.getElementById('view-pane-weekly');
+
+      if (!dailyBtn || !weeklyBtn || !dailyPane || !weeklyPane) return;
+
+      if (mode === 'daily') {
+        dailyBtn.classList.add('is-active');
+        weeklyBtn.classList.remove('is-active');
+        dailyPane.classList.add('is-active');
+        weeklyPane.classList.remove('is-active');
+      } else {
+        weeklyBtn.classList.add('is-active');
+        dailyBtn.classList.remove('is-active');
+        weeklyPane.classList.add('is-active');
+        dailyPane.classList.remove('is-active');
+      }
+
+      // 브라우저 URL 쿼리 파라미터 업데이트 (새로고침 없이 상태 유지)
+      try {
+        const url = new URL(window.location);
+        url.searchParams.set('view', mode);
+        window.history.replaceState({}, '', url);
+      } catch (e) {}
+    }
+
+    function goToWeek(dateStr) {
+      location.href = '?id=' + facId + '&date=' + dateStr + '&view=' + currentViewMode;
+    }
+
+    function selectDay(dateStr) {
+      location.href = '?id=' + facId + '&date=' + dateStr + '&view=' + currentViewMode;
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      HY_MOCK.renderSidebar();
+    });
+  </script>
+</body>
+
+</html>

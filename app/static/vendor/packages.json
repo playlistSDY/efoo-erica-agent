@@ -1,0 +1,24 @@
+[
+  {
+    "name": "marked",
+    "version": "18.2.0",
+    "license": "MIT",
+    "source": "https://registry.npmjs.org/marked/-/marked-18.2.0.tgz",
+    "repository": {
+      "type": "git",
+      "url": "git+https://github.com/markedjs/marked.git"
+    },
+    "file": "marked-18.2.0.umd.js"
+  },
+  {
+    "name": "dompurify",
+    "version": "3.4.17",
+    "license": "(MPL-2.0 OR Apache-2.0)",
+    "source": "https://registry.npmjs.org/dompurify/-/dompurify-3.4.17.tgz",
+    "repository": {
+      "type": "git",
+      "url": "git://github.com/cure53/DOMPurify.git"
+    },
+    "file": "dompurify-3.4.17.min.js"
+  }
+]

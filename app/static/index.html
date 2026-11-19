@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#23483e">
+  <meta name="description" content="공식 자료로 찾는 한양대학교 ERICA 캠퍼스 시설과 매장 공지 학식">
+  <title>EFOO · 한양 ERICA 학교 안내</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <script src="/static/vendor/marked-18.2.0.umd.js" defer></script>
+  <script src="/static/vendor/dompurify-3.4.17.min.js" defer></script>
+  <script src="/static/markdown.js" defer></script>
+  <script src="/static/app.js?v=20261119-agentic" defer></script>
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="EFOO 처음으로">EFOO<span>.</span></a>
+      <div class="header-actions">
+        <span class="mode-badge" id="mode-badge"><span id="mode-label">연결 확인 중</span></span>
+        <button class="history-button" id="history-button" type="button" aria-haspopup="dialog" aria-controls="history-dialog" disabled>이전 대화</button>
+        <button class="new-chat" id="new-chat" type="button" disabled>새 대화</button>
+      </div>
+    </header>
+    <div class="chat-scroll" id="chat-scroll">
+      <section class="welcome" id="welcome" aria-labelledby="welcome-title">
+        <h1 id="welcome-title">학교 생활, 무엇이 궁금하세요?</h1>
+        <p>캠퍼스 시설·매장·공지·학식을 물어보세요.</p>
+      </section>
+      <section class="messages" id="messages" aria-label="대화 내용" aria-live="polite" aria-relevant="additions text"></section>
+    </div>
+    <div class="composer-area">
+      <div id="notice" class="notice" role="status" hidden></div>
+      <form class="composer" id="chat-form">
+        <label class="sr-only" for="message">학교 생활에 관해 질문하기</label>
+        <textarea id="message" rows="1" maxlength="2000" placeholder="메시지를 입력하세요" required disabled></textarea>
+        <button class="send-button" id="send-button" type="submit" aria-label="질문 보내기" disabled><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      </form>
+      <p class="composer-note" id="composer-note">학교 정보를 확인할 때는 사용한 공식 자료를 함께 보여드려요.</p>
+    </div>
+  </main>
+  <dialog class="history-dialog" id="history-dialog" aria-labelledby="history-title" aria-describedby="history-description">
+    <div class="history-heading"><h2 id="history-title">이전 대화</h2><button class="close-history" id="close-history" type="button" aria-label="이전 대화 닫기">×</button></div>
+    <p class="history-description" id="history-description">이 브라우저에서 저장한 대화를 이어갈 수 있어요.</p>
+    <div class="history-status" id="history-status" role="status"></div>
+    <div class="history-list" id="history-list" aria-label="저장된 대화 목록"></div>
+  </dialog>
+</body>
+</html>

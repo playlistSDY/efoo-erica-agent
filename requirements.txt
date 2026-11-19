@@ -1,0 +1,8 @@
+fastapi==0.162.5
+uvicorn[standard]==0.54.0
+requests==2.34.2
+beautifulsoup4==4.15.0
+openai==2.54.0
+python-dotenv==1.2.4
+psycopg[binary]==3.3.9
+boto3==1.44.2

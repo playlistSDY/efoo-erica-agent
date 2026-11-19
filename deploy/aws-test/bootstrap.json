@@ -1,0 +1,148 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "EFOO Week2 bootstrap: private source metadata S3 and ECR. No model or chat data.",
+  "Parameters": {
+    "ProjectName": {
+      "Type": "String",
+      "Default": "efoo-week2",
+      "MinLength": 3,
+      "MaxLength": 24,
+      "AllowedPattern": "[a-z][a-z0-9-]*"
+    }
+  },
+  "Resources": {
+    "Repository": {
+      "Type": "AWS::ECR::Repository",
+      "Properties": {
+        "RepositoryName": {
+          "Ref": "ProjectName"
+        },
+        "ImageTagMutability": "IMMUTABLE",
+        "ImageScanningConfiguration": {
+          "ScanOnPush": true
+        },
+        "EncryptionConfiguration": {
+          "EncryptionType": "AES256"
+        },
+        "EmptyOnDelete": false,
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "EFOO"
+          },
+          {
+            "Key": "Stage",
+            "Value": "Week2"
+          },
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${ProjectName}-images"
+            }
+          }
+        ]
+      },
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain"
+    },
+    "DocumentBucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketName": {
+          "Fn::Sub": "${ProjectName}-sources-${AWS::AccountId}-${AWS::Region}"
+        },
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": true,
+          "BlockPublicPolicy": true,
+          "IgnorePublicAcls": true,
+          "RestrictPublicBuckets": true
+        },
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [
+            {
+              "ServerSideEncryptionByDefault": {
+                "SSEAlgorithm": "AES256"
+              }
+            }
+          ]
+        },
+        "VersioningConfiguration": {
+          "Status": "Enabled"
+        },
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "EFOO"
+          },
+          {
+            "Key": "Stage",
+            "Value": "Week2"
+          },
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${ProjectName}-sources"
+            }
+          }
+        ]
+      },
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain"
+    },
+    "DocumentBucketPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Properties": {
+        "Bucket": {
+          "Ref": "DocumentBucket"
+        },
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "DenyUnencryptedTransport",
+              "Effect": "Deny",
+              "Principal": "*",
+              "Action": "s3:*",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "DocumentBucket",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::Sub": "${DocumentBucket.Arn}/*"
+                }
+              ],
+              "Condition": {
+                "Bool": {
+                  "aws:SecureTransport": "false"
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "RepositoryUri": {
+      "Value": {
+        "Fn::GetAtt": [
+          "Repository",
+          "RepositoryUri"
+        ]
+      }
+    },
+    "RepositoryName": {
+      "Value": {
+        "Ref": "Repository"
+      }
+    },
+    "DocumentBucketName": {
+      "Value": {
+        "Ref": "DocumentBucket"
+      }
+    }
+  }
+}
