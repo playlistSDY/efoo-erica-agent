@@ -206,7 +206,9 @@ app/static/          채팅 전용 학교 안내 화면
 
 2주차에는 [환경 검증용 API](deploy/aws-test/README.md)를 별도로 배포했습니다. 서울 리전의 전용 ECR·비공개 S3·VPC·ALB·ECS Fargate와 IAM 실행/업무 역할, CloudWatch Logs를 구성했습니다. Fargate 작업 1개, ALB healthy, `/healthz`와 `/api/environment`의 HTTP 200, S3 실제 읽기를 포함한 12개 검증을 통과했습니다. 로그 보존은 실제 14일로 확인했습니다.
 
-이 API는 공식 출처 메타데이터 2건으로 환경 연결을 확인하며 `rag_enabled=false`를 표시합니다. 전체 챗봇의 RDS·모델·대화·미디어를 AWS에 이관한 상태는 아닙니다. 실습은 NAT 없이 Public Fargate를 사용하고 작업의 TCP 8000은 ALB 보안 그룹만 허용합니다. 1주차의 private Fargate/NAT와 차이가 있습니다. `frontend-probe.json`은 기존 ALB 앞에 별도 CloudFront HTTPS 접속점을 구성하는 템플릿입니다.
+이 API는 공식 출처 메타데이터 2건으로 환경 연결을 확인하며 `rag_enabled=false`를 표시합니다. 전체 챗봇의 RDS·모델·대화·미디어를 AWS에 이관한 상태는 아닙니다. 실습은 NAT 없이 Public Fargate를 사용하고 작업의 TCP 8000은 ALB 보안 그룹만 허용합니다. 1주차의 private Fargate/NAT와 차이가 있습니다.
+
+[AWS 환경 확인 웹](https://docknwx8xl49w.cloudfront.net)은 별도 CloudFront 스택의 HTTPS 접속점입니다. 웹과 `/healthz`, `/api/environment` 모두 실제 HTTP 200 및 동일 빌드 버전을 확인했습니다. CloudFront는 캐시하지 않고 ALB로 전달하며, 이번 실습의 CloudFront→ALB 구간은 HTTP입니다. 정적 웹 S3/OAC·ALB HTTPS·인증은 본 서비스 배포 단계에서 구성해야 합니다. ALB와 Fargate 등은 실행 중 비용이 발생하며, 실습 리소스에는 자동 삭제를 적용하지 않았습니다.
 
 ```bash
 cp .env.example .env
