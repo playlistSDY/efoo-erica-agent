@@ -1,4 +1,5 @@
 from datetime import date as Date
+from collections import deque
 from contextlib import asynccontextmanager
 import logging
 from pathlib import Path
@@ -9,7 +10,7 @@ from uuid import UUID, uuid4
 
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Query, Request, Response
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from openai import OpenAIError
 from pydantic import BaseModel, Field, model_validator
 
@@ -82,11 +83,31 @@ def create_app(settings=None, store=None, agent=None, *, refresh=None, scheduler
     app.state.refresh, app.state.scheduler = refresh, scheduler
     app.state.notice_refresh = notice_refresh
     app.state.agentic = agentic
+    chat_admissions = deque()
+    chat_in_flight = 0
 
     @app.middleware("http")
     async def request_metadata(request, call_next):
+        nonlocal chat_in_flight
         request_id, started = uuid4().hex, time.monotonic()
-        response = await call_next(request)
+        capped_chat = request.method == "POST" and request.url.path.rstrip("/") == "/api/chat" and settings.chat_hourly_limit
+        if capped_chat:
+            while chat_admissions and started - chat_admissions[0] >= 3600:
+                chat_admissions.popleft()
+            if len(chat_admissions) >= settings.chat_hourly_limit:
+                retry = max(1, int(3600 - (started - chat_admissions[0])) + 1)
+                return JSONResponse({"detail": "실습 서버의 시간당 질문 한도에 도달했어요."},
+                                    429, headers={"Retry-After": str(retry), "Cache-Control": "no-store"})
+            if chat_in_flight >= 2:
+                return JSONResponse({"detail": "답변을 처리 중이에요. 잠시 후 다시 질문해 주세요."},
+                                    429, headers={"Retry-After": "5", "Cache-Control": "no-store"})
+            chat_admissions.append(started)
+            chat_in_flight += 1
+        try:
+            response = await call_next(request)
+        finally:
+            if capped_chat:
+                chat_in_flight -= 1
         response.headers["X-Request-ID"] = request_id
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
@@ -108,7 +129,7 @@ def create_app(settings=None, store=None, agent=None, *, refresh=None, scheduler
         token,owner=conversations.ensure_owner(existing)
         if token!=existing:
             response.set_cookie("efoo_session",token,max_age=365*24*60*60,httponly=True,
-                secure=request.url.scheme=="https",samesite="lax",path="/")
+                secure=settings.secure_session_cookie or request.url.scheme=="https",samesite="lax",path="/")
         return owner
 
     @app.get("/api/conversations/current")

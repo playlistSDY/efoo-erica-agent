@@ -256,3 +256,34 @@ def test_school_facility_overview_uses_low_similarity_directory_instead_of_distr
     assert sent_prompt(client)["context"]["restaurant"] is None
     assert sent_prompt(client)["context"]["available_document_count"] == 1
     assert result["sources"][0]["url"] == directory_url
+
+
+def test_academic_requirement_does_not_dump_unrelated_campus_evidence(school):
+    store, client, agent = school
+    profile(store)
+    result = ask(agent, "졸업하려면 몇 학점 필요해?")
+    assert result["mode"] == "insufficient"
+    assert result["sources"] == []
+    assert "학사 기준을 확인할 수 없어요" in result["answer"]
+    client.embeddings.create.assert_not_called()
+    client.responses.create.assert_not_called()
+
+
+def test_pending_school_chunk_does_not_disable_rag_for_indexed_evidence(school):
+    store, client, agent = school
+    store.replace_knowledge(
+        "page:facility-directory", code="campus", name="ERICA 공개 시설 목록",
+        url="https://life.hanyang.ac.kr/theme/pages/facilities/index.php",
+        fetched_at=STAMP, payload={},
+        chunks=knowledge_chunks("page:facility-directory", "시설 안내", [("목록", "카페와 편의점")], kind="page"),
+    )
+    index_all(store)
+    store.replace_knowledge(
+        "page:pending", code="pending", name="색인 대기 자료",
+        url="https://life.hanyang.ac.kr/", fetched_at=STAMP, payload={},
+        chunks=knowledge_chunks("page:pending", "대기 중", [("안내", "색인 대기")], kind="page"),
+    )
+    result = ask(agent, "학교 시설을 소개해줘")
+    assert result["mode"] == "openai"
+    assert all(source["restaurant_code"] != "pending" for source in sent_prompt(client)["sources"])
+    assert any("색인 대기 자료 1개 제외" in step for step in result["trace"])

@@ -40,13 +40,15 @@ class Settings:
     schedule_days: int = field(default_factory=lambda: int(os.getenv("SCHEDULE_DAYS", "14")))
     agentic_enabled: bool = field(default_factory=lambda: _env_bool("AGENTIC_ENABLED", True))
     agentic_max_turns: int = field(default_factory=lambda: int(os.getenv("AGENTIC_MAX_TURNS", "5")))
+    secure_session_cookie: bool = field(default_factory=lambda: _env_bool("SECURE_SESSION_COOKIE", False))
+    chat_hourly_limit: int = field(default_factory=lambda: int(os.getenv("CHAT_HOURLY_LIMIT", "0")))
 
     def __post_init__(self):
         for name in ("max_date_range_days", "schedule_interval_minutes", "schedule_days"):
             value = getattr(self, name)
             if isinstance(value, bool) or not isinstance(value, int) or value < 1:
                 raise ValueError(f"{name} must be a positive integer")
-        for name in ("meal_refresh_hours", "meal_empty_refresh_minutes", "refresh_retry_minutes"):
+        for name in ("meal_refresh_hours", "meal_empty_refresh_minutes", "refresh_retry_minutes", "chat_hourly_limit"):
             value = getattr(self, name)
             if isinstance(value, bool) or not isinstance(value, int) or value < 0:
                 raise ValueError(f"{name} must be a nonnegative integer")

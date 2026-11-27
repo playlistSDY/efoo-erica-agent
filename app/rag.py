@@ -576,6 +576,12 @@ class Agent:
         if not code and not re.search(r"학식|식당|식사|메뉴|밥|점심|저녁|아침|중식|조식|석식|가격|얼마|원|먹|뭐\s*나(?:와|왔|오)|알레르|칼로리|영양|채식|운영|휴무|창의|창보|교식|기숙사|추천|학교|캠퍼스|한양|에리카|ERICA|복지|편의점|카페|복사|프린트|인쇄|기념품|서점|버스|연락|전화|번호|위치|어디|시간|공지|결제|학생증|매장|음식점|시설|사진|이미지|우체국|우편|택배|커피|장학|졸업|학사", scope_text,re.I):
             result["answer"] = "한양 ERICA의 시설·매장·공지·학식 정보를 함께 찾아드릴 수 있어요. 궁금한 학교생활 정보를 편하게 물어봐 주세요!"
             return result
+        if not code and not plan.facility_ids and (
+            re.search(r"졸업.{0,18}(?:학점|요건|조건)|(?:학점|요건|조건).{0,18}졸업|장학금.{0,18}(?:자격|선발|자격요건)|수강\s*신청.{0,18}(?:기간|일정|자격)", message)
+        ):
+            result["answer"] = "현재 확보한 학교 자료에서는 해당 학사 기준을 확인할 수 없어요. 소속 학과의 공식 안내나 학과 행정팀에서 확인해 주세요."
+            trace.append("확보한 학교생활 자료 범위 밖")
+            return result
         rows = target_evidence(self.store.candidates(day, code, meal_type,doc_types=doc_types,end_day=end_day,
             exclude_targets=excluded,exclude_scopes=excluded_scopes),plan)
         source_pool=[source_view(row,i+1) for i,row in enumerate(bundle_target_profiles(rows,plan))]
@@ -592,6 +598,13 @@ class Agent:
             trace.append("유효한 최신 근거 없음")
             return finish()
         indexed = [r for r in rows if r["embedding"] is not None and r["embedding_model"] == self.settings.embedding_model]
+        if not code and not plan.facility_ids and "menu" not in doc_types and self.settings.api_key and len(indexed) != len(rows):
+            if not indexed:
+                trace.append("선택 범위에 색인된 자료 없음")
+                return finish()
+            trace.append(f"색인 대기 자료 {len(rows) - len(indexed)}개 제외")
+            rows = indexed
+            source_pool = [source_view(row, i + 1) for i, row in enumerate(rows)]
         if not self.settings.api_key or len(indexed) != len(rows):
             # Explicit preview: no fake embeddings, no simulated model answer.
             if is_range:
